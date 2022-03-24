@@ -82,7 +82,7 @@ def rawdata_to_sentence(rawdata):
     :return: 단어1 + 단어2 + 단어3로 만든 문장
     '''
     words = rawdata.split('|')
-    return words[INDEX.TEXT_OBJ_IDX] + ' ' + words[INDEX.TEXT_MTHD_IDX] + ' ' + words[INDEX.TEXT_DEAL_IDX]
+    return words[INDEX.TEXT_OBJ_IDX] + ' ' + words[INDEX.TEXT_MTHD_IDX] + ' ' + words[INDEX.TEXT_DEAL_IDX], words[INDEX.SMALL_IDX]
 
 def read_txt_file(filename):
     ''' txt 파일을 읽어서 단어1 + 단어2 + 단어3로 문장으로 만들고, 소분류를 label로 만드는 함수
@@ -95,7 +95,9 @@ def read_txt_file(filename):
     lines = read_raw_txt_file(filename)
 
     for line in lines:
-        sentence_list.append(rawdata_to_sentence(line))
+        sentence, label = rawdata_to_sentence(line)
+        sentence_list.append(sentence)
+        label_list.append(label)
 
     return sentence_list, label_list
 
