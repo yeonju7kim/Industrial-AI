@@ -164,14 +164,22 @@ def get_bert_tokenizer(max_len):
     transform = nlp.data.BERTSentenceTransform(bert_tokenizer, max_seq_length=max_len, pad=True, pair=False)
     return bertmodel, transform
 
-def save_pickle(filename, train_dataloader=None, test_dataloader=None):
+def save_dataloader_pickle(tokenizer_name, embedding_name, dataset_name, dataloader):
+    category_dataset_pkl_file = f'assets/tokenized_data/CategoryDataloader-{tokenizer_name}-{embedding_name}-{dataset_name}.pkl'
+    _save_pickle(category_dataset_pkl_file, dataloader)
+
+def get_saved_dataloader(tokenizer_name, embedding_name, dataset_name, dataloader):
+    category_dataset_pkl_file = f'assets/tokenized_data/CategoryDataloader-{tokenizer_name}-{embedding_name}-{dataset_name}.pkl'
+    return _get_pickle(category_dataset_pkl_file)
+
+def _save_pickle(filename, dataloader):
     if os.path.exists('assets/tokenized_data') == False:
         os.mkdir('assets/tokenized_data')
     with open(filename, 'wb') as f:
         print('save category dataset')
-        pickle.dump({'train_dataloader':train_dataloader, 'test_dataloader':test_dataloader}, f)
+        pickle.dump(dataloader, f)
 
-def get_pickle(pkl_file):
+def _get_pickle(pkl_file):
     try:
         with open(pkl_file, 'rb') as f:
             pickle_file = pickle.load(f)
@@ -189,8 +197,8 @@ def unit_test():
         print(f'segment_ids : {segment_ids}')
         print(f'label : {label}')
         break
-    save_pickle(category_dataset_pkl_file, train_dataloader, valid_dataloader)
-    new_train_dataloader, new_valid_dataloader = get_pickle(category_dataset_pkl_file)
+    save_dataloader_pickle(tokenizer_name, embedding_name, train_dataloader, valid_dataloader)
+    new_train_dataloader, new_valid_dataloader = get_saved_dataloader(tokenizer_name, embedding_name, train_dataloader)
     for batch_id, old_train_data, new_valid_data in enumerate(zip(train_dataloader, new_train_dataloader)):
         if old_train_data != new_valid_data:
             print('Reloaded data is changed. Something is wrong.')
