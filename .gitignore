@@ -130,3 +130,5 @@ dmypy.json
 
 .idea
 yj
+1.6.0
+*.pkl
