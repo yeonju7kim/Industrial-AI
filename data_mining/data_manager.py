@@ -1,16 +1,15 @@
 import os.path
 
 import gluonnlp as nlp
-from pretrained_model.kobert import get_tokenizer
-from pretrained_model.kobert import get_pytorch_kobert_model
+from kobert import get_tokenizer
+from kobert import get_pytorch_kobert_model
 
-import torch, pickle
+import pickle
 from torch.utils.data import DataLoader, Dataset
 
 from config.config import *
 from data_mining.category_manager import *
 from tqdm import tqdm
-
 '''
 데이터는 아래와 같이 구성되었다.
 1. 대분류
@@ -32,9 +31,9 @@ class CategoryDataset(Dataset):
         '''
         self.sentence_list = []
         self.label_list = []
-        for sentence in sentence_list:
+        for sentence in tqdm(sentence_list):
             self.sentence_list.append(transform([sentence]))
-        for label in label_list:
+        for label in tqdm(label_list):
             if label != '':
                 self.label_list.append(category_manager.get_one_hot_by_code('%03d' % int(label)))
             else:
@@ -44,32 +43,24 @@ class CategoryDataset(Dataset):
         return len(self.sentence_list)
 
     def __getitem__(self, idx):
-        return self.sentence_list[idx], torch.FloatTensor(self.label_list[idx])
+        try :
+            return self.sentence_list[idx], torch.FloatTensor(self.label_list[idx])
+        except:
+            return self.sentence_list[idx], None
 
     @staticmethod
-    def newCategoryDataset(sentence_list, label_list, transform, category_manager, pkl_tag):
+    def newCategoryDataset(sentence_list, label_list, transform, category_manager):
         ''' 새로운 CategoryDataset을 만드는 함수
 
         :param sentence_list: 전처리를 거친 문장의 리스트
         :param label_list: 라벨의 리스트
         :param transform: tokenize -> embedding을 하는 transform
         :param category_manager: 카테고리 정보를 담는 category manager
-        :param pkl_tag: pkl 파일 뒤에 붙일 태그, 어떤 데이터인지를 의미한다.
         :return: category dataset
         '''
-        category_dataset_pkl_file = f'assets/tokenized_data/CategoryDataset-{pkl_tag}.pkl'
 
-        if os.path.exists(category_dataset_pkl_file):
-            print('load saved category dataset')
-            with open(category_dataset_pkl_file, 'rb') as f:
-                category_dataset = pickle.load(f)
-                return category_dataset
-        if os.path.exists('.cache') == False:
-            os.mkdir('.cache')
         category_dataset = CategoryDataset(sentence_list, label_list, transform, category_manager)
-        with open(category_dataset_pkl_file, 'wb') as f:
-            print('save category dataset')
-            pickle.dump(category_dataset, f)
+
         return category_dataset
 
 class INDEX:
@@ -120,7 +111,7 @@ def read_raw_txt_file(filename):
 
     return lines
 
-def get_category_dataloader(batch_size, category_manager, transform, train_portion, filename, pkl_tag, shuffle=True):
+def get_category_dataloader(batch_size, category_manager, transform, train_portion, filename, shuffle=True):
     ''' category dataloader 얻는 함수
 
     :param batch_size: batch size
@@ -128,12 +119,11 @@ def get_category_dataloader(batch_size, category_manager, transform, train_porti
     :param transform: tokenizer -> embedding 하는 transform
     :param train_portion: trainset의 비율 (0~1)
     :param filename: file이름
-    :param pkl_tag: pkl 파일 뒤에 붙는 tag
     :param shuffle: shuffle 유무
     :return: trainDataLoader, validDataLoader
     '''
     sentence_list, label_list = read_txt_file(filename)
-    category_dataset = CategoryDataset.newCategoryDataset(sentence_list, label_list, transform, category_manager, pkl_tag)
+    category_dataset = CategoryDataset.newCategoryDataset(sentence_list, label_list, transform, category_manager)
 
     dataset_size = len(category_dataset)
     train_size = (int)(train_portion * dataset_size)
@@ -172,18 +162,32 @@ def get_bert_tokenizer(max_len):
     transform = nlp.data.BERTSentenceTransform(bert_tokenizer, max_seq_length=max_len, pad=True, pair=False)
     return bertmodel, transform
 
+def save_pickle(filename, train_dataloader=None, test_dataloader=None):
+    if os.path.exists('assets/tokenized_data') == False:
+        os.mkdir('assets/tokenized_data')
+    with open(category_dataset_pkl_file, 'wb') as f:
+        print('save category dataset')
+        pickle.dump({'train_dataloader':train_dataloader, 'test_dataloader':test_dataloader}, f)
+
+def get_pickle(pkl_file):
+    pickle_file = pickle.load(pkl_file)
+    return pickle_file['train_dataloader'], pickle_file['test_dataloader']
+
 def unit_test():
     bert, transform = get_bert_tokenizer(max_len)
     category_manager = CategoryManager.new_category_manager(category_file)
-    train_dataloader, valid_dataloader = get_category_dataloader(32, category_manager, transform, train_portion=train_portion, shuffle=True, filename='preprocess/2. 모델개발용자료.txt', pkl_tag='unlabeled')
+    train_dataloader, valid_dataloader = get_category_dataloader(32, category_manager, transform, train_portion=train_portion, shuffle=True, filename=labeled_txt_file)
     for batch_id, ((token_ids, valid_length, segment_ids), label) in enumerate(train_dataloader):
         print(f'token_ids : {token_ids}')
         print(f'valid_length : {valid_length}')
         print(f'segment_ids : {segment_ids}')
         print(f'label : {label}')
         break
-
-
+    save_pickle(category_dataset_pkl_file, train_dataloader, valid_dataloader)
+    new_train_dataloader, new_valid_dataloader = get_pickle()
+    for batch_id, old_train_data, new_valid_data in enumerate(zip(train_dataloader, new_train_dataloader)):
+        if old_train_data != new_valid_data:
+            print('Reloaded data is changed. Something is wrong.')
 
 
 if __name__ == '__main__':
