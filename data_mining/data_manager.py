@@ -167,13 +167,17 @@ def get_bert_tokenizer(max_len):
 def save_pickle(filename, train_dataloader=None, test_dataloader=None):
     if os.path.exists('assets/tokenized_data') == False:
         os.mkdir('assets/tokenized_data')
-    with open(category_dataset_pkl_file, 'wb') as f:
+    with open(filename, 'wb') as f:
         print('save category dataset')
         pickle.dump({'train_dataloader':train_dataloader, 'test_dataloader':test_dataloader}, f)
 
 def get_pickle(pkl_file):
-    pickle_file = pickle.load(pkl_file)
-    return pickle_file['train_dataloader'], pickle_file['test_dataloader']
+    try:
+        with open(pkl_file, 'rb') as f:
+            pickle_file = pickle.load(f)
+            return pickle_file['train_dataloader'], pickle_file['test_dataloader']
+    except:
+        raise AssertionError
 
 def unit_test():
     bert, transform = get_bert_tokenizer(max_len)
@@ -186,7 +190,7 @@ def unit_test():
         print(f'label : {label}')
         break
     save_pickle(category_dataset_pkl_file, train_dataloader, valid_dataloader)
-    new_train_dataloader, new_valid_dataloader = get_pickle()
+    new_train_dataloader, new_valid_dataloader = get_pickle(category_dataset_pkl_file)
     for batch_id, old_train_data, new_valid_data in enumerate(zip(train_dataloader, new_train_dataloader)):
         if old_train_data != new_valid_data:
             print('Reloaded data is changed. Something is wrong.')
