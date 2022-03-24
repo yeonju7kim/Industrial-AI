@@ -183,7 +183,7 @@ def _get_pickle(pkl_file):
     try:
         with open(pkl_file, 'rb') as f:
             pickle_file = pickle.load(f)
-            return pickle_file['train_dataloader'], pickle_file['test_dataloader']
+            return pickle_file
     except:
         raise AssertionError
 
@@ -197,10 +197,10 @@ def unit_test():
         print(f'segment_ids : {segment_ids}')
         print(f'label : {label}')
         break
-    save_dataloader_pickle(tokenizer_name, embedding_name, train_dataloader, valid_dataloader)
-    new_train_dataloader, new_valid_dataloader = get_saved_dataloader(tokenizer_name, embedding_name, train_dataloader)
-    for batch_id, old_train_data, new_valid_data in enumerate(zip(train_dataloader, new_train_dataloader)):
-        if old_train_data != new_valid_data:
+    save_dataloader_pickle(tokenizer_name, embedding_name, 'train', train_dataloader)
+    new_train_dataloader = get_saved_dataloader(tokenizer_name, embedding_name, train_dataloader)
+    for batch_id, old_train_data, new_train_data in enumerate(zip(train_dataloader, new_train_dataloader)):
+        if old_train_data != new_train_data:
             print('Reloaded data is changed. Something is wrong.')
 
 
