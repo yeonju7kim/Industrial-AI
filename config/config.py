@@ -14,5 +14,12 @@ num_epochs = 4
 max_grad_norm = 1
 log_interval = 200
 learning_rate = 4e-5
-train_portion = 0.7
+train_portion = 0.9
+
+class TOKENIZER:
+    KOBERT = 'kobert',
+    KKMA = 'kkma',
+    KOMARAN = 'komaran',
+    OKT = 'okt',
+    MECAB = 'mecab',
 
